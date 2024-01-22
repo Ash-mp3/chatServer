@@ -1,13 +1,15 @@
 const fs = require("fs");
 const net = require("net");
+
 let id = 1;
-let port = 3000;
 let users = [];
-const password = 'password';
+const port = 3000;
+const password = "password";
 
 const writeStream = fs.createWriteStream("./server.log");
 
 const server = net.createServer((client) => {
+  //creates a unique id for each user
   const createIDs = () => {
     client.username = `user${id}`;
     users.push({ username: `user${id}`, client: client });
@@ -17,6 +19,7 @@ const server = net.createServer((client) => {
     id++;
   };
 
+  // function will send a message to all clients besides the one who sent it
   const postToOthers = (msg) => {
     users.forEach((user) => {
       if (user.username !== client.username) {
@@ -28,6 +31,7 @@ const server = net.createServer((client) => {
   createIDs();
   postToOthers("joined");
 
+  //handels special commands from users
   const handleCommands = class {
     constructor(userInput) {
       this.userInput = userInput;
@@ -37,6 +41,7 @@ const server = net.createServer((client) => {
       this.clientList = this.ShowConnected;
     }
 
+    // wispers to another user
     Wisper(userInput) {
       const dmUser = userInput.split(" ")[1];
       let wisperUser = users.find((user) => user.username === dmUser);
@@ -56,10 +61,10 @@ const server = net.createServer((client) => {
       }
     }
 
+    //changes a users display name
     ChangeName(userInput) {
       const newName = userInput.split(" ")[1];
       const currUser = users.find((user) => user.username === client.username);
-      // const checkNameAvailability = users.find((user) => user.username === newName);
       const changeNameMsg = `${client.username} has changed there name to ${newName}`;
       if (userInput.split(" ").length === 1) {
         client.write("there was no name entered, please try again");
@@ -77,6 +82,7 @@ const server = net.createServer((client) => {
       }
     }
 
+    // kicks another user
     kickUser(userInput) {
       const inputUser = userInput.split(" ")[1];
       const inputPassword = userInput.split(" ")[2];
@@ -104,6 +110,8 @@ const server = net.createServer((client) => {
         console.log(kickedMsg);
       }
     }
+
+    // shows all connected users
     ShowConnected() {
       users.forEach((user) => {
         client.write(`--${user.username}--`);
@@ -111,9 +119,11 @@ const server = net.createServer((client) => {
       });
     }
   };
+
+  //listens for and handles data from the client
   client.on("data", (chunk) => {
     const message = chunk.toString().trim();
-    const command = message.split(' ')[0]
+    const command = message.split(" ")[0];
     const commandClass = new handleCommands();
 
     if (command === `/w`) {
@@ -133,6 +143,7 @@ const server = net.createServer((client) => {
     }
   });
 
+  // listens for disconnecting users
   client.on("close", () => {
     const disconnectedMsg = `${client.username} has disconnected`;
     writeStream.write(`${disconnectedMsg}\n`);
@@ -141,6 +152,7 @@ const server = net.createServer((client) => {
   });
 });
 
+//listing for a port
 server.listen(port, () => {
   console.log(`server is running on port ${port}`);
 });
